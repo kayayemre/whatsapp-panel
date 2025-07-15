@@ -135,28 +135,6 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Test accounts */}
-          <div className="mt-6 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl">
-            <p className="text-center text-sm text-gray-700 font-semibold mb-3">Test Hesapları</p>
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center justify-between p-2 bg-white rounded-lg">
-                <div className="flex items-center space-x-2">
-                  <Shield className="w-4 h-4 text-red-500" />
-                  <span className="font-medium text-gray-700">Admin:</span>
-                </div>
-                <span className="text-gray-600 font-mono">admin / admin123</span>
-              </div>
-              <div className="flex items-center justify-between p-2 bg-white rounded-lg">
-                <div className="flex items-center space-x-2">
-                  <User className="w-4 h-4 text-blue-500" />
-                  <span className="font-medium text-gray-700">Kullanıcı:</span>
-                </div>
-                <span className="text-gray-600 font-mono">user / user123</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Bottom decoration */}
         <div className="text-center mt-8">
           <p className="text-gray-500 text-sm">
