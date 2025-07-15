@@ -546,9 +546,9 @@ const loadData = async () => {
         <div className="truncate">
           {item.mesaj && item.mesaj.length > 45 ? item.mesaj.substring(0, 45) + '...' : item.mesaj}
         </div>
-        <div className="absolute z-[100] bottom-full left-0 mb-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none max-w-sm border border-gray-700 whitespace-normal">
-          {item.mesaj}
-        </div>
+        <div className="absolute z-[999] bottom-full left-0 mb-2 px-3 py-2 bg-black text-white text-sm rounded-lg shadow-2xl opacity-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none max-w-md border border-gray-700 whitespace-normal">
+  {item.mesaj}
+</div>
       </td>
       <td className="px-3 py-3 text-sm text-gray-900 relative group overflow-hidden">
         <div className="truncate text-sm">
