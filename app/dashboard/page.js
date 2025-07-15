@@ -401,28 +401,31 @@ export default function DashboardPage() {
               </div>
               <h3 className="text-xl font-bold text-gray-800">Kullanıcı Bazlı İstatistikler</h3>
             </div>
-            <div className="space-y-4">
-              {Object.entries(stats.userStats || {}).map(([username, count], index) => (
-                <div key={username} className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl hover:from-gray-100 hover:to-gray-150 transition-all duration-300">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
-                      index % 4 === 0 ? 'bg-blue-500' : 
-                      index % 4 === 1 ? 'bg-green-500' : 
-                      index % 4 === 2 ? 'bg-purple-500' : 'bg-orange-500'
-                    }`}>
-                      {username.charAt(0).toUpperCase()}
-                    </div>
-                    <span className="font-medium text-gray-700">{username}</span>
-                  </div>
-                  <span className="text-2xl font-bold text-gray-800">{count}</span>
-                </div>
-              ))}
-              {Object.keys(stats.userStats || {}).length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  Henüz bugün arama yapılmamış
-                </div>
-              )}
-            </div>
+<div className="space-y-4">
+  {Object.entries(stats.userStats || {})
+    .sort(([, a], [, b]) => b - a) // En çok'tan en az'a sıralama
+    .map(([username, count], index) => (
+      <div key={username} className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl hover:from-gray-100 hover:to-gray-150 transition-all duration-300">
+        <div className="flex items-center space-x-3">
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
+            index % 4 === 0 ? 'bg-blue-500' : 
+            index % 4 === 1 ? 'bg-green-500' : 
+            index % 4 === 2 ? 'bg-purple-500' : 'bg-orange-500'
+          }`}>
+            {username.charAt(0).toUpperCase()}
+          </div>
+          <span className="font-medium text-gray-700">{username}</span>
+        </div>
+        <span className="text-2xl font-bold text-gray-800">{count}</span>
+      </div>
+    ))
+  }
+  {Object.keys(stats.userStats || {}).length === 0 && (
+    <div className="text-center py-8 text-gray-500">
+      Henüz bugün arama yapılmamış
+    </div>
+  )}
+</div>
           </div>
         </div>
 
