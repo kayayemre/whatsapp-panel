@@ -205,7 +205,7 @@ export default function DashboardPage() {
   try {
     const { data: totalData } = await supabase
       .from('musteriler')
-      .select('durum, created_at, updated_by')
+      .select('durum, created_at, updated_by, updated_at')
 
     const today = new Date().toISOString().split('T')[0]
     const todayData = totalData?.filter(item => 
@@ -213,16 +213,17 @@ export default function DashboardPage() {
     ) || []
 
     const totalCalled = totalData?.filter(item => item.durum === 'ARANDI').length || 0
-    const todayCalled = todayData?.filter(item => item.durum === 'ARANDI').length || 0
+    
+    // Bugün aranan: updated_at'i bugün olan ve durumu ARANDI olan kayıtlar
+    const todayCalled = totalData?.filter(item => 
+      item.durum === 'ARANDI' && item.updated_at?.startsWith(today)
+    ).length || 0
 
-    // Kullanıcı bazlı istatistikler
+    // Kullanıcı bazlı istatistikler - bugün arama yapanlar
     const userStats = {}
     totalData?.forEach(item => {
-      if (item.updated_by && item.durum === 'ARANDI') {
-        const date = item.created_at?.split('T')[0]
-        if (date === today) {
-          userStats[item.updated_by] = (userStats[item.updated_by] || 0) + 1
-        }
+      if (item.updated_by && item.durum === 'ARANDI' && item.updated_at?.startsWith(today)) {
+        userStats[item.updated_by] = (userStats[item.updated_by] || 0) + 1
       }
     })
 
@@ -245,7 +246,8 @@ export default function DashboardPage() {
       .from('musteriler')
       .update({ 
         durum: newStatus, 
-        updated_by: user.username 
+        updated_by: user.username,
+        updated_at: new Date().toISOString() // Güncelleme zamanını kaydet
       })
       .eq('id', id)
 
