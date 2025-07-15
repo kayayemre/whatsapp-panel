@@ -515,7 +515,7 @@ const loadData = async () => {
     </thead>
 <tbody className="divide-y divide-gray-200/50">
   {data.map((item, index) => (
-    <tr key={item.id} className={`${getRowColor(item.durum, index)} transition-all duration-300 hover:scale-[1.005] hover:shadow-lg`}>
+    <tr key={item.id} className={`${getRowColor(item.durum, index)} transition-all duration-300`}>
       <td className="px-2 py-3 text-sm font-medium text-gray-900 relative group overflow-hidden">
         <div className="truncate text-sm">
           {item.ad_soyad && item.ad_soyad.length > 8 ? item.ad_soyad.substring(0, 8) + '...' : item.ad_soyad}
@@ -546,7 +546,7 @@ const loadData = async () => {
         <div className="truncate">
           {item.mesaj && item.mesaj.length > 45 ? item.mesaj.substring(0, 45) + '...' : item.mesaj}
         </div>
-        <div className="absolute z-[100] bottom-full left-0 mb-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none max-w-sm border border-gray-700">
+        <div className="absolute z-[100] bottom-full left-0 mb-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none max-w-sm border border-gray-700 whitespace-normal">
           {item.mesaj}
         </div>
       </td>
@@ -554,7 +554,7 @@ const loadData = async () => {
         <div className="truncate text-sm">
           {item.fiyat}
         </div>
-        <div className="absolute z-[100] bottom-full left-0 mb-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none max-w-sm border border-gray-700">
+        <div className="absolute z-[100] bottom-full left-0 mb-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none max-w-sm border border-gray-700 whitespace-normal">
           {item.fiyat}
         </div>
       </td>
