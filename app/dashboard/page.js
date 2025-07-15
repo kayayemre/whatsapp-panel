@@ -19,36 +19,46 @@ export default function DashboardPage() {
   const itemsPerPage = 50
 
   useEffect(() => {
-    const currentUser = getCurrentUser()
-    if (!currentUser) {
-      router.push('/login')
-      return
-    }
-    setUser(currentUser)
-    loadData()
-    loadStats()
+  const currentUser = getCurrentUser()
+  if (!currentUser) {
+    router.push('/login')
+    return
+  }
+  setUser(currentUser)
+  loadData()
+  loadStats()
 
-    // Gerçek zamanlı güncellemeler için subscription
-    const subscription = supabase
-      .channel('musteriler_changes')
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'musteriler' 
-        }, 
-        (payload) => {
-          console.log('Değişiklik algılandı:', payload)
+  // Gerçek zamanlı güncellemeler için subscription (daha hızlı)
+  const subscription = supabase
+    .channel('musteriler_changes')
+    .on('postgres_changes', 
+      { 
+        event: '*', 
+        schema: 'public', 
+        table: 'musteriler' 
+      }, 
+      (payload) => {
+        console.log('Değişiklik algılandı:', payload)
+        // Hemen veriyi yeniden yükle
+        setTimeout(() => {
           loadData()
           loadStats()
-        }
-      )
-      .subscribe()
+        }, 100) // 100ms sonra yükle
+      }
+    )
+    .subscribe()
 
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [router, currentPage, searchTerm, statusFilter])
+  // Ek olarak her 10 saniyede bir kontrol et
+  const interval = setInterval(() => {
+    loadData()
+    loadStats()
+  }, 10000) // 10 saniye
+
+  return () => {
+    subscription.unsubscribe()
+    clearInterval(interval)
+  }
+}, [router, currentPage, searchTerm, statusFilter])
 
   // Duplicates temizleme fonksiyonu
   const removeDuplicates = async () => {
@@ -147,14 +157,44 @@ const loadData = async () => {
 
     const { data: result, error, count } = await query
 
-    if (error) {
-      console.error('Veri çekme hatası:', error)
-      throw error
+    if (error) throw error
+
+    // Veri kontrolü ve otomatik güncelleme
+    for (const item of result || []) {
+      let needsUpdate = false
+      let updateData = {}
+
+      // Mesaj kontrolü - cuf geçenleri "Arama bekliyor" yap
+      if (item.mesaj && item.mesaj.includes('cuf') && item.mesaj !== 'Arama bekliyor') {
+        updateData.mesaj = 'Arama bekliyor'
+        needsUpdate = true
+      }
+
+      // Fiyat kontrolü - "oda" geçmeyenleri "Genel bilgi aldı" yap
+      if (item.fiyat && 
+          item.fiyat.trim() !== '' && 
+          item.fiyat !== 'Genel bilgi aldı' &&
+          !item.fiyat.toLowerCase().includes('oda')) {
+        updateData.fiyat = 'Genel bilgi aldı'
+        needsUpdate = true
+      }
+
+      // Güncelleme gerekiyorsa
+      if (needsUpdate) {
+        try {
+          await supabase
+            .from('musteriler')
+            .update(updateData)
+            .eq('id', item.id)
+        } catch (updateError) {
+          console.error('Otomatik güncelleme hatası:', updateError)
+        }
+      }
     }
 
-    console.log('Çekilen veri:', result) // Debug için
-
-    setData(result || [])
+    // Son veriyi tekrar çek
+    const { data: finalResult } = await query
+    setData(finalResult || [])
     setTotalPages(Math.ceil(count / itemsPerPage))
   } catch (error) {
     console.error('Veri yüklenirken hata:', error)
