@@ -201,59 +201,68 @@ export default function DashboardPage() {
   }
 }
 
-  const loadStats = async () => {
-    try {
-      const { data: totalData } = await supabase
-        .from('musteriler')
-        .select('durum, created_at, updated_by')
+ const loadStats = async () => {
+  try {
+    const { data: totalData } = await supabase
+      .from('musteriler')
+      .select('durum, created_at, updated_by, updated_at')
 
-      const today = new Date().toISOString().split('T')[0]
-      const todayData = totalData?.filter(item => 
-        item.created_at?.startsWith(today)
-      ) || []
+    const today = new Date().toISOString().split('T')[0]
+    
+    // Bugün oluşturulan kayıtlar
+    const todayCreatedData = totalData?.filter(item => 
+      item.created_at?.startsWith(today)
+    ) || []
 
-      const totalCalled = totalData?.filter(item => item.durum === 'ARANDI').length || 0
-      const todayCalled = todayData?.filter(item => item.durum === 'ARANDI').length || 0
+    // Bugün aranmış kayıtlar (updated_at bugün olanlar)
+    const todayCalledData = totalData?.filter(item => 
+      item.durum === 'ARANDI' && 
+      item.updated_at?.startsWith(today)
+    ) || []
 
-      const userStats = {}
-      totalData?.forEach(item => {
-        if (item.updated_by && item.durum === 'ARANDI') {
-          const date = item.created_at?.split('T')[0]
-          if (date === today) {
-            userStats[item.updated_by] = (userStats[item.updated_by] || 0) + 1
-          }
-        }
-      })
+    const totalCalled = totalData?.filter(item => item.durum === 'ARANDI').length || 0
 
-      setStats({
-        totalCount: totalData?.length || 0,
-        todayCount: todayData.length,
-        totalCalled,
-        todayCalled,
-        callRateTotal: totalData?.length ? ((totalCalled / totalData.length) * 100).toFixed(1) : 0,
-        callRateToday: todayData.length ? ((todayCalled / todayData.length) * 100).toFixed(1) : 0,
-        userStats
-      })
-    } catch (error) {
-      console.error('İstatistikler yüklenirken hata:', error)
-    }
+    // Kullanıcı bazlı istatistikler - bugün arama yapanlar
+    const userStats = {}
+    todayCalledData.forEach(item => {
+      if (item.updated_by) {
+        userStats[item.updated_by] = (userStats[item.updated_by] || 0) + 1
+      }
+    })
+
+    setStats({
+      totalCount: totalData?.length || 0,
+      todayCount: todayCreatedData.length,
+      totalCalled,
+      todayCalled: todayCalledData.length,
+      callRateTotal: totalData?.length ? ((totalCalled / totalData.length) * 100).toFixed(1) : 0,
+      callRateToday: todayCreatedData.length ? ((todayCalledData.length / todayCreatedData.length) * 100).toFixed(1) : 0,
+      userStats
+    })
+  } catch (error) {
+    console.error('İstatistikler yüklenirken hata:', error)
   }
+}
+ const updateStatus = async (id, newStatus) => {
+  try {
+    const { error } = await supabase
+      .from('musteriler')
+      .update({ 
+        durum: newStatus, 
+        updated_by: user.username,
+        updated_at: new Date().toISOString() // Güncelleme zamanını da ekleyelim
+      })
+      .eq('id', id)
 
-  const updateStatus = async (id, newStatus) => {
-    try {
-      const { error } = await supabase
-        .from('musteriler')
-        .update({ 
-          durum: newStatus, 
-          updated_by: user.username 
-        })
-        .eq('id', id)
-
-      if (error) throw error
-    } catch (error) {
-      console.error('Durum güncellenirken hata:', error)
-    }
+    if (error) throw error
+    
+    // Değişiklik yapıldıktan hemen sonra veriyi ve istatistikleri yeniden yükle
+    await loadData()
+    await loadStats()
+  } catch (error) {
+    console.error('Durum güncellenirken hata:', error)
   }
+}
 
   const handleLogout = () => {
     logout()

@@ -134,6 +134,7 @@ export default function LoginPage() {
               </div>
             </div>
           </div>
+        </div>
 
         {/* Bottom decoration */}
         <div className="text-center mt-8">
