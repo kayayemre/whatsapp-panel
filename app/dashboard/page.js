@@ -205,38 +205,34 @@ export default function DashboardPage() {
   try {
     const { data: totalData } = await supabase
       .from('musteriler')
-      .select('durum, created_at, updated_by, updated_at')
+      .select('durum, created_at, updated_by')
 
     const today = new Date().toISOString().split('T')[0]
-    
-    // Bugün oluşturulan kayıtlar
-    const todayCreatedData = totalData?.filter(item => 
+    const todayData = totalData?.filter(item => 
       item.created_at?.startsWith(today)
     ) || []
 
-    // Bugün aranmış kayıtlar (updated_at bugün olanlar)
-    const todayCalledData = totalData?.filter(item => 
-      item.durum === 'ARANDI' && 
-      item.updated_at?.startsWith(today)
-    ) || []
-
     const totalCalled = totalData?.filter(item => item.durum === 'ARANDI').length || 0
+    const todayCalled = todayData?.filter(item => item.durum === 'ARANDI').length || 0
 
-    // Kullanıcı bazlı istatistikler - bugün arama yapanlar
+    // Kullanıcı bazlı istatistikler
     const userStats = {}
-    todayCalledData.forEach(item => {
-      if (item.updated_by) {
-        userStats[item.updated_by] = (userStats[item.updated_by] || 0) + 1
+    totalData?.forEach(item => {
+      if (item.updated_by && item.durum === 'ARANDI') {
+        const date = item.created_at?.split('T')[0]
+        if (date === today) {
+          userStats[item.updated_by] = (userStats[item.updated_by] || 0) + 1
+        }
       }
     })
 
     setStats({
       totalCount: totalData?.length || 0,
-      todayCount: todayCreatedData.length,
+      todayCount: todayData.length,
       totalCalled,
-      todayCalled: todayCalledData.length,
+      todayCalled,
       callRateTotal: totalData?.length ? ((totalCalled / totalData.length) * 100).toFixed(1) : 0,
-      callRateToday: todayCreatedData.length ? ((todayCalledData.length / todayCreatedData.length) * 100).toFixed(1) : 0,
+      callRateToday: todayData.length ? ((todayCalled / todayData.length) * 100).toFixed(1) : 0,
       userStats
     })
   } catch (error) {
@@ -249,15 +245,22 @@ export default function DashboardPage() {
       .from('musteriler')
       .update({ 
         durum: newStatus, 
-        updated_by: user.username,
-        updated_at: new Date().toISOString() // Güncelleme zamanını da ekleyelim
+        updated_by: user.username 
       })
       .eq('id', id)
 
     if (error) throw error
     
-    // Değişiklik yapıldıktan hemen sonra veriyi ve istatistikleri yeniden yükle
-    await loadData()
+    // Tabloyu anında güncelle
+    setData(prevData => 
+      prevData.map(item => 
+        item.id === id 
+          ? { ...item, durum: newStatus, updated_by: user.username }
+          : item
+      )
+    )
+    
+    // İstatistikleri yeniden yükle
     await loadStats()
   } catch (error) {
     console.error('Durum güncellenirken hata:', error)
