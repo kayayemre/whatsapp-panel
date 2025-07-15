@@ -122,7 +122,7 @@ export default function DashboardPage() {
     }
   }
 
- const loadData = async () => {
+const loadData = async () => {
   try {
     setLoading(true)
     await removeDuplicates()
@@ -147,52 +147,14 @@ export default function DashboardPage() {
 
     const { data: result, error, count } = await query
 
-    if (error) throw error
-
-    for (const item of result || []) {
-      let needsUpdate = false
-      let updateData = {}
-
-      // Fiyat sütunu kontrolü - "oda" kelimesi yoksa "Genel bilgi aldı" yap
-      if (item.fiyat && 
-          item.fiyat.trim() !== '' && 
-          item.fiyat !== 'Genel bilgi aldı' &&
-          !item.fiyat.toLowerCase().includes('oda')) {
-        updateData.fiyat = 'Genel bilgi aldı'
-        needsUpdate = true
-      }
-
-      // Mesaj sütunu kontrolü - {{cuf_ ile başlayan kodlar varsa
-      if (item.mesaj && item.mesaj.includes('{{cuf_')) {
-        updateData.fiyat = 'Genel bilgi aldı'
-        updateData.mesaj = 'Bilgi yüklenemedi'
-        needsUpdate = true
-      }
-
-      // Güncelleme gerekiyorsa veritabanını güncelle
-      if (needsUpdate) {
-        try {
-          const { error: updateError } = await supabase
-            .from('musteriler')
-            .update(updateData)
-            .eq('id', item.id)
-
-          if (updateError) {
-            console.error('Güncelleme hatası:', updateError)
-          } else {
-            console.log(`ID ${item.id} güncellendi`)
-          }
-        } catch (updateError) {
-          console.error('Güncelleme hatası:', updateError)
-        }
-      }
+    if (error) {
+      console.error('Veri çekme hatası:', error)
+      throw error
     }
 
-    // Güncelleme sonrası tekrar veriyi çek
-    const { data: finalResult, error: finalError } = await query
-    if (finalError) throw finalError
+    console.log('Çekilen veri:', result) // Debug için
 
-    setData(finalResult || [])
+    setData(result || [])
     setTotalPages(Math.ceil(count / itemsPerPage))
   } catch (error) {
     console.error('Veri yüklenirken hata:', error)
