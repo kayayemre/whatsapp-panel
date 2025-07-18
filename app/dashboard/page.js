@@ -206,26 +206,18 @@ export default function DashboardPage() {
 
 const loadStats = async () => {
   try {
-    // Önce toplam sayıyı count ile al
-    const { count: totalCount, error: countError } = await supabase
-      .from('musteriler')
-      .select('*', { count: 'exact', head: true })
-
-    if (countError) {
-      console.error('Count hatası:', countError)
-      return
-    }
-
-    // Şimdi tüm veriyi çek
+    // Tek sorguda tüm veriyi çek
     const { data: totalData, error } = await supabase
       .from('musteriler')
       .select('durum, created_at, updated_by, updated_at')
-      .range(0, 9999)
+      .order('created_at', { ascending: false })
 
     if (error) {
       console.error('Stats veri çekme hatası:', error)
       return
     }
+
+    console.log('Dashboard stats - çekilen veri sayısı:', totalData?.length)
 
     const today = new Date().toISOString().split('T')[0]
     
@@ -249,16 +241,12 @@ const loadStats = async () => {
       }
     })
 
-    console.log('Bugün oluşturulan:', todayCreatedData.length)
-    console.log('Bugün aranan:', todayCalledData.length)
-    console.log('Kullanıcı stats:', userStats)
-
     setStats({
-      totalCount: totalCount || 0,
+      totalCount: totalData?.length || 0,
       todayCount: todayCreatedData.length,
       totalCalled,
       todayCalled: todayCalledData.length,
-      callRateTotal: totalCount ? ((totalCalled / totalCount) * 100).toFixed(1) : 0,
+      callRateTotal: totalData?.length ? ((totalCalled / totalData.length) * 100).toFixed(1) : 0,
       callRateToday: todayCreatedData.length ? ((todayCalledData.length / todayCreatedData.length) * 100).toFixed(1) : 0,
       userStats
     })
