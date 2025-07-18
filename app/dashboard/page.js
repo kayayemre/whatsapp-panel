@@ -206,10 +206,11 @@ export default function DashboardPage() {
 
   const loadStats = async () => {
   try {
-    // Tüm veriyi çek, limit yok
+    // Supabase'in varsayılan 1000 limit'ini kaldır
     const { data: totalData, error } = await supabase
       .from('musteriler')
       .select('durum, created_at, updated_by, updated_at')
+      .limit(10000) // 10.000 kayıt limiti koy
 
     if (error) {
       console.error('Stats veri çekme hatası:', error)
