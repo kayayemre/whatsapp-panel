@@ -123,120 +123,122 @@ const loadHotelStats = async () => {
   }
 }
 
-  const loadUserStats = async () => {
-    try {
-      const { data: allData } = await supabase
-        .from('musteriler')
-        .select('updated_by, durum, created_at, otel_adi, updated_at')
+ const loadUserStats = async () => {
+  try {
+    const { data: allData } = await supabase
+      .from('musteriler')
+      .select('updated_by, durum, created_at, otel_adi, updated_at')
+      .range(0, 9999) // Limit ekle
 
-      const today = new Date().toISOString().split('T')[0]
-      const userGroups = {}
+    const today = new Date().toISOString().split('T')[0]
+    const userGroups = {}
 
-      allData?.forEach(item => {
-        if (item.updated_by && item.durum === 'ARANDI') {
-          if (!userGroups[item.updated_by]) {
-            userGroups[item.updated_by] = {
-              name: item.updated_by,
-              totalCalls: 0,
-              todayCalls: 0,
-              hotels: {}
-            }
-          }
-
-          userGroups[item.updated_by].totalCalls++
-
-          if (item.updated_at?.startsWith(today)) {
-            userGroups[item.updated_by].todayCalls++
-          }
-
-          // Otel bazlı istatistik
-          if (!userGroups[item.updated_by].hotels[item.otel_adi]) {
-            userGroups[item.updated_by].hotels[item.otel_adi] = 0
-          }
-          if (item.updated_at?.startsWith(today)) {
-            userGroups[item.updated_by].hotels[item.otel_adi]++
+    allData?.forEach(item => {
+      if (item.updated_by && item.durum === 'ARANDI') {
+        if (!userGroups[item.updated_by]) {
+          userGroups[item.updated_by] = {
+            name: item.updated_by,
+            totalCalls: 0,
+            todayCalls: 0,
+            hotels: {}
           }
         }
-      })
 
-      setUserStats(Object.values(userGroups))
-    } catch (error) {
-      console.error('Kullanıcı istatistikleri hatası:', error)
-    }
+        userGroups[item.updated_by].totalCalls++
+
+        if (item.updated_at?.startsWith(today)) {
+          userGroups[item.updated_by].todayCalls++
+        }
+
+        // Otel bazlı istatistik
+        if (!userGroups[item.updated_by].hotels[item.otel_adi]) {
+          userGroups[item.updated_by].hotels[item.otel_adi] = 0
+        }
+        if (item.updated_at?.startsWith(today)) {
+          userGroups[item.updated_by].hotels[item.otel_adi]++
+        }
+      }
+    })
+
+    setUserStats(Object.values(userGroups))
+  } catch (error) {
+    console.error('Kullanıcı istatistikleri hatası:', error)
   }
+}
 
-  const loadResponseStats = async () => {
-    try {
-      const { data: allData } = await supabase
-        .from('musteriler')
-        .select('fiyat, created_at, otel_adi')
+ const loadResponseStats = async () => {
+  try {
+    const { data: allData } = await supabase
+      .from('musteriler')
+      .select('fiyat, created_at, otel_adi')
+      .range(0, 9999) // Limit ekle
 
-      const today = new Date().toISOString().split('T')[0]
-      const todayData = allData?.filter(item => 
-        item.created_at?.startsWith(today)
-      ) || []
+    const today = new Date().toISOString().split('T')[0]
+    const todayData = allData?.filter(item => 
+      item.created_at?.startsWith(today)
+    ) || []
 
-      // Genel cevaplanma istatistikleri
-      const totalMessages = allData?.length || 0
-      const priceAskers = allData?.filter(item => 
-        item.fiyat && item.fiyat.toLowerCase().includes('oda')
-      ).length || 0
-      const infoAskers = allData?.filter(item => 
-        item.fiyat && item.fiyat.toLowerCase().includes('genel bilgi')
-      ).length || 0
+    // Genel cevaplanma istatistikleri
+    const totalMessages = allData?.length || 0
+    const priceAskers = allData?.filter(item => 
+      item.fiyat && item.fiyat.toLowerCase().includes('oda')
+    ).length || 0
+    const infoAskers = allData?.filter(item => 
+      item.fiyat && item.fiyat.toLowerCase().includes('genel bilgi')
+    ).length || 0
 
-      // Bugün için
-      const todayMessages = todayData.length
-      const todayPriceAskers = todayData.filter(item => 
-        item.fiyat && item.fiyat.toLowerCase().includes('oda')
-      ).length
-      const todayInfoAskers = todayData.filter(item => 
-        item.fiyat && item.fiyat.toLowerCase().includes('genel bilgi')
-      ).length
+    // Bugün için
+    const todayMessages = todayData.length
+    const todayPriceAskers = todayData.filter(item => 
+      item.fiyat && item.fiyat.toLowerCase().includes('oda')
+    ).length
+    const todayInfoAskers = todayData.filter(item => 
+      item.fiyat && item.fiyat.toLowerCase().includes('genel bilgi')
+    ).length
 
-      // Otel bazlı cevaplanma istatistikleri
-      const hotelResponse = {}
-      allData?.forEach(item => {
-        if (!hotelResponse[item.otel_adi]) {
-          hotelResponse[item.otel_adi] = {
-            name: item.otel_adi,
-            totalMessages: 0,
-            priceAskers: 0,
-            infoAskers: 0
-          }
+    // Otel bazlı cevaplanma istatistikleri
+    const hotelResponse = {}
+    allData?.forEach(item => {
+      if (!hotelResponse[item.otel_adi]) {
+        hotelResponse[item.otel_adi] = {
+          name: item.otel_adi,
+          totalMessages: 0,
+          priceAskers: 0,
+          infoAskers: 0
         }
+      }
 
-        hotelResponse[item.otel_adi].totalMessages++
-        
-        if (item.fiyat && item.fiyat.toLowerCase().includes('oda')) {
-          hotelResponse[item.otel_adi].priceAskers++
-        } else if (item.fiyat && item.fiyat.toLowerCase().includes('genel bilgi')) {
-          hotelResponse[item.otel_adi].infoAskers++
-        }
-      })
+      hotelResponse[item.otel_adi].totalMessages++
+      
+      if (item.fiyat && item.fiyat.toLowerCase().includes('oda')) {
+        hotelResponse[item.otel_adi].priceAskers++
+      } else if (item.fiyat && item.fiyat.toLowerCase().includes('genel bilgi')) {
+        hotelResponse[item.otel_adi].infoAskers++
+      }
+    })
 
-      setResponseStats({
-        total: {
-          totalMessages,
-          priceAskers,
-          infoAskers,
-          priceRate: totalMessages ? ((priceAskers / totalMessages) * 100).toFixed(1) : 0
-        },
-        today: {
-          totalMessages: todayMessages,
-          priceAskers: todayPriceAskers,
-          infoAskers: todayInfoAskers,
-          priceRate: todayMessages ? ((todayPriceAskers / todayMessages) * 100).toFixed(1) : 0
-        },
-        hotels: Object.values(hotelResponse).map(hotel => ({
-          ...hotel,
-          priceRate: hotel.totalMessages ? ((hotel.priceAskers / hotel.totalMessages) * 100).toFixed(1) : 0
-        }))
-      })
-    } catch (error) {
-      console.error('Cevaplanma istatistikleri hatası:', error)
-    }
+    setResponseStats({
+      total: {
+        totalMessages,
+        priceAskers,
+        infoAskers,
+        priceRate: totalMessages ? ((priceAskers / totalMessages) * 100).toFixed(1) : 0
+      },
+      today: {
+        totalMessages: todayMessages,
+        priceAskers: todayPriceAskers,
+        infoAskers: todayInfoAskers,
+        priceRate: todayMessages ? ((todayPriceAskers / todayMessages) * 100).toFixed(1) : 0
+      },
+      hotels: Object.values(hotelResponse).map(hotel => ({
+        ...hotel,
+        priceRate: hotel.totalMessages ? ((hotel.priceAskers / hotel.totalMessages) * 100).toFixed(1) : 0
+      }))
+    })
+  } catch (error) {
+    console.error('Cevaplanma istatistikleri hatası:', error)
   }
+}
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8']
 
