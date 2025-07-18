@@ -204,7 +204,7 @@ export default function DashboardPage() {
     }
   }
 
-  const loadStats = async () => {
+ const loadStats = async () => {
   try {
     // Supabase'in varsayılan 1000 limit'ini kaldır
     const { data: totalData, error } = await supabase
