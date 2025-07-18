@@ -114,6 +114,84 @@ export default function AdminStatsPage() {
       },
       hotels: []
     })
+    // Mevcut kodun devamı olarak, setResponseStats'tan sonra ekleyin:
+
+// Otel Bazlı İstatistikler
+const hotelGroups = {}
+allData?.forEach(item => {
+  if (!hotelGroups[item.otel_adi]) {
+    hotelGroups[item.otel_adi] = {
+      name: item.otel_adi,
+      totalCount: 0,
+      todayCount: 0,
+      totalCalled: 0,
+      todayCalled: 0,
+      totalMessages: 0,
+      priceAskers: 0,
+      infoAskers: 0
+    }
+  }
+
+  hotelGroups[item.otel_adi].totalCount++
+  hotelGroups[item.otel_adi].totalMessages++
+  
+  if (item.created_at?.startsWith(today)) {
+    hotelGroups[item.otel_adi].todayCount++
+  }
+
+  if (item.durum === 'ARANDI') {
+    hotelGroups[item.otel_adi].totalCalled++
+    if (item.updated_at?.startsWith(today)) {
+      hotelGroups[item.otel_adi].todayCalled++
+    }
+  }
+
+  if (item.fiyat && item.fiyat.toLowerCase().includes('oda')) {
+    hotelGroups[item.otel_adi].priceAskers++
+  } else if (item.fiyat && item.fiyat.toLowerCase().includes('genel bilgi')) {
+    hotelGroups[item.otel_adi].infoAskers++
+  }
+})
+
+const hotelStatsArray = Object.values(hotelGroups).map(hotel => ({
+  ...hotel,
+  callRateTotal: hotel.totalCount ? ((hotel.totalCalled / hotel.totalCount) * 100).toFixed(1) : 0,
+  callRateToday: hotel.todayCount ? ((hotel.todayCalled / hotel.todayCount) * 100).toFixed(1) : 0,
+  priceRate: hotel.totalMessages ? ((hotel.priceAskers / hotel.totalMessages) * 100).toFixed(1) : 0
+}))
+
+setHotelStats(hotelStatsArray)
+
+// Kullanıcı Bazlı İstatistikler
+const userGroups = {}
+allData?.forEach(item => {
+  if (item.updated_by && item.durum === 'ARANDI') {
+    if (!userGroups[item.updated_by]) {
+      userGroups[item.updated_by] = {
+        name: item.updated_by,
+        totalCalls: 0,
+        todayCalls: 0,
+        hotels: {}
+      }
+    }
+
+    userGroups[item.updated_by].totalCalls++
+
+    if (item.updated_at?.startsWith(today)) {
+      userGroups[item.updated_by].todayCalls++
+    }
+
+    // Otel bazlı istatistik
+    if (!userGroups[item.updated_by].hotels[item.otel_adi]) {
+      userGroups[item.updated_by].hotels[item.otel_adi] = 0
+    }
+    if (item.updated_at?.startsWith(today)) {
+      userGroups[item.updated_by].hotels[item.otel_adi]++
+    }
+  }
+})
+
+setUserStats(Object.values(userGroups))
 
     // Diğer istatistikler aynı kalıyor...
     // Otel ve kullanıcı istatistikleri kodu burada devam ediyor
