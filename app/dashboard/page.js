@@ -21,46 +21,45 @@ export default function DashboardPage() {
   const itemsPerPage = 50
 
   useEffect(() => {
-    const currentUser = getCurrentUser()
-    if (!currentUser) {
-      router.push('/login')
-      return
-    }
-    setUser(currentUser)
-    loadData()
-    loadStats()
+  const currentUser = getCurrentUser()
+  if (!currentUser) {
+    router.push('/login')
+    return
+  }
+  setUser(currentUser)
+  loadData()
+  loadStats()
 
-    // Gerçek zamanlı güncellemeler için subscription (daha hızlı)
-    const subscription = supabase
-      .channel('musteriler_changes')
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'musteriler' 
-        }, 
-        (payload) => {
-          console.log('Değişiklik algılandı:', payload)
-          // Hemen veriyi yeniden yükle
-          setTimeout(() => {
-            loadData()
-            loadStats()
-          }, 100) // 100ms sonra yükle
-        }
-      )
-      .subscribe()
+  // Gerçek zamanlı güncellemeler için subscription (daha hızlı)
+  const subscription = supabase
+    .channel('musteriler_changes')
+    .on('postgres_changes', 
+      { 
+        event: '*', 
+        schema: 'public', 
+        table: 'musteriler' 
+      }, 
+      (payload) => {
+        console.log('Değişiklik algılandı:', payload)
+        // Hemen veriyi ve istatistikleri yeniden yükle
+        setTimeout(() => {
+          loadData()
+          loadStats() // İstatistikleri de güncelle
+        }, 100)
+      }
+    )
+    .subscribe()
 
-    // Ek olarak her 10 saniyede bir kontrol et
-    const interval = setInterval(() => {
-      loadData()
-      loadStats()
-    }, 10000) // 10 saniye
+  // Ek olarak her 5 saniyede bir kontrol et (daha sık)
+  const interval = setInterval(() => {
+    loadStats() // Sadece istatistikleri güncelle
+  }, 5000) // 5 saniye
 
-    return () => {
-      subscription.unsubscribe()
-      clearInterval(interval)
-    }
-  }, [router, currentPage, searchTerm, statusFilter])
+  return () => {
+    subscription.unsubscribe()
+    clearInterval(interval)
+  }
+}, [router, currentPage, searchTerm, statusFilter])
 
   // Duplicates temizleme fonksiyonu
   const removeDuplicates = async () => {
