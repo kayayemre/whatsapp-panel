@@ -206,32 +206,51 @@ export default function DashboardPage() {
 
 const loadStats = async () => {
   try {
-    // Tek sorguda tüm veriyi çek
-    const { data: totalData, error } = await supabase
-      .from('musteriler')
-      .select('durum, created_at, updated_by, updated_at')
-      .order('created_at', { ascending: false })
+    // Tüm veriyi toplu olarak çek
+    let allData = []
+    let from = 0
+    const batchSize = 1000
+    
+    while (true) {
+      const { data: batch, error } = await supabase
+        .from('musteriler')
+        .select('durum, created_at, updated_by, updated_at')
+        .range(from, from + batchSize - 1)
+        .order('created_at', { ascending: false })
 
-    if (error) {
-      console.error('Stats veri çekme hatası:', error)
-      return
+      if (error) {
+        console.error('Stats veri çekme hatası:', error)
+        break
+      }
+
+      if (!batch || batch.length === 0) {
+        break
+      }
+
+      allData = [...allData, ...batch]
+      
+      if (batch.length < batchSize) {
+        break // Son batch
+      }
+      
+      from += batchSize
     }
 
-    console.log('Dashboard stats - çekilen veri sayısı:', totalData?.length)
+    console.log('Dashboard stats - çekilen veri sayısı:', allData?.length)
 
     const today = new Date().toISOString().split('T')[0]
     
     // Bugün oluşturulan kayıtlar
-    const todayCreatedData = totalData?.filter(item => 
+    const todayCreatedData = allData?.filter(item => 
       item.created_at?.startsWith(today)
     ) || []
 
     // Bugün arama yapılan kayıtlar (updated_at bugün olanlar)
-    const todayCalledData = totalData?.filter(item => 
+    const todayCalledData = allData?.filter(item => 
       item.durum === 'ARANDI' && item.updated_at?.startsWith(today)
     ) || []
 
-    const totalCalled = totalData?.filter(item => item.durum === 'ARANDI').length || 0
+    const totalCalled = allData?.filter(item => item.durum === 'ARANDI').length || 0
 
     // Kullanıcı bazlı istatistikler
     const userStats = {}
@@ -242,11 +261,11 @@ const loadStats = async () => {
     })
 
     setStats({
-      totalCount: totalData?.length || 0,
+      totalCount: allData?.length || 0,
       todayCount: todayCreatedData.length,
       totalCalled,
       todayCalled: todayCalledData.length,
-      callRateTotal: totalData?.length ? ((totalCalled / totalData.length) * 100).toFixed(1) : 0,
+      callRateTotal: allData?.length ? ((totalCalled / allData.length) * 100).toFixed(1) : 0,
       callRateToday: todayCreatedData.length ? ((todayCalledData.length / todayCreatedData.length) * 100).toFixed(1) : 0,
       userStats
     })
