@@ -204,20 +204,32 @@ export default function DashboardPage() {
     }
   }
 
- const loadStats = async () => {
+const loadStats = async () => {
   try {
-    // Supabase'in varsayılan 1000 limit'ini kaldır
+    // Önce toplam sayıyı count ile al
+    const { count: totalCount, error: countError } = await supabase
+      .from('musteriler')
+      .select('*', { count: 'exact', head: true })
+
+    if (countError) {
+      console.error('Count hatası:', countError)
+      return
+    }
+
+    console.log('Count ile toplam kayıt:', totalCount)
+
+    // Şimdi tüm veriyi çek (pagination ile)
     const { data: totalData, error } = await supabase
       .from('musteriler')
       .select('durum, created_at, updated_by, updated_at')
-      .limit(10000) // 10.000 kayıt limiti koy
+      .range(0, 9999) // 0'dan 9999'a kadar (10.000 kayıt)
 
     if (error) {
       console.error('Stats veri çekme hatası:', error)
       return
     }
 
-    console.log('Stats için çekilen veri sayısı:', totalData?.length) // Debug için
+    console.log('Range ile çekilen veri sayısı:', totalData?.length)
 
     const today = new Date().toISOString().split('T')[0]
     const todayData = totalData?.filter(item => 
@@ -226,12 +238,10 @@ export default function DashboardPage() {
 
     const totalCalled = totalData?.filter(item => item.durum === 'ARANDI').length || 0
     
-    // Bugün aranan: updated_at'i bugün olan ve durumu ARANDI olan kayıtlar
     const todayCalled = totalData?.filter(item => 
       item.durum === 'ARANDI' && item.updated_at?.startsWith(today)
     ).length || 0
 
-    // Kullanıcı bazlı istatistikler - bugün arama yapanlar
     const userStats = {}
     totalData?.forEach(item => {
       if (item.updated_by && item.durum === 'ARANDI' && item.updated_at?.startsWith(today)) {
@@ -239,19 +249,12 @@ export default function DashboardPage() {
       }
     })
 
-    console.log('Hesaplanan stats:', {
-      totalCount: totalData?.length,
-      todayCount: todayData.length,
-      totalCalled,
-      todayCalled
-    }) // Debug için
-
     setStats({
-      totalCount: totalData?.length || 0,
+      totalCount: totalCount || 0, // Count'tan gelen değeri kullan
       todayCount: todayData.length,
       totalCalled,
       todayCalled,
-      callRateTotal: totalData?.length ? ((totalCalled / totalData.length) * 100).toFixed(1) : 0,
+      callRateTotal: totalCount ? ((totalCalled / totalCount) * 100).toFixed(1) : 0,
       callRateToday: todayData.length ? ((todayCalled / todayData.length) * 100).toFixed(1) : 0,
       userStats
     })
