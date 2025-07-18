@@ -45,7 +45,7 @@ export default function AdminStatsPage() {
     try {
       const { data: allData } = await supabase
         .from('musteriler')
-        .select('durum, created_at, fiyat')
+        .select('durum, created_at, fiyat, updated_at')
 
       const today = new Date().toISOString().split('T')[0]
       const todayData = allData?.filter(item => 
@@ -53,7 +53,9 @@ export default function AdminStatsPage() {
       ) || []
 
       const totalCalled = allData?.filter(item => item.durum === 'ARANDI').length || 0
-      const todayCalled = todayData?.filter(item => item.durum === 'ARANDI').length || 0
+      const todayCalled = allData?.filter(item => 
+        item.durum === 'ARANDI' && item.updated_at?.startsWith(today)
+      ).length || 0
 
       setStats({
         totalCount: allData?.length || 0,
@@ -72,7 +74,7 @@ export default function AdminStatsPage() {
     try {
       const { data: allData } = await supabase
         .from('musteriler')
-        .select('otel_adi, durum, created_at')
+        .select('otel_adi, durum, created_at, updated_at')
 
       const today = new Date().toISOString().split('T')[0]
       const hotelGroups = {}
@@ -97,7 +99,7 @@ export default function AdminStatsPage() {
 
         if (item.durum === 'ARANDI') {
           hotelGroups[item.otel_adi].totalCalled++
-          if (item.created_at?.startsWith(today)) {
+          if (item.updated_at?.startsWith(today)) {
             hotelGroups[item.otel_adi].todayCalled++
           }
         }
@@ -120,7 +122,7 @@ export default function AdminStatsPage() {
     try {
       const { data: allData } = await supabase
         .from('musteriler')
-        .select('updated_by, durum, created_at, otel_adi')
+        .select('updated_by, durum, created_at, otel_adi, updated_at')
 
       const today = new Date().toISOString().split('T')[0]
       const userGroups = {}
@@ -138,7 +140,7 @@ export default function AdminStatsPage() {
 
           userGroups[item.updated_by].totalCalls++
 
-          if (item.created_at?.startsWith(today)) {
+          if (item.updated_at?.startsWith(today)) {
             userGroups[item.updated_by].todayCalls++
           }
 
@@ -146,7 +148,9 @@ export default function AdminStatsPage() {
           if (!userGroups[item.updated_by].hotels[item.otel_adi]) {
             userGroups[item.updated_by].hotels[item.otel_adi] = 0
           }
-          userGroups[item.updated_by].hotels[item.otel_adi]++
+          if (item.updated_at?.startsWith(today)) {
+            userGroups[item.updated_by].hotels[item.otel_adi]++
+          }
         }
       })
 
@@ -233,35 +237,40 @@ export default function AdminStatsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-lg">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="text-center mt-4 text-gray-600">İstatistikler yükleniyor...</p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
+        <div className="bg-white/80 backdrop-blur-lg p-8 rounded-2xl shadow-2xl border border-white/20">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto"></div>
+          <p className="text-center mt-4 text-gray-700 font-medium">İstatistikler yükleniyor...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-white/80 backdrop-blur-lg shadow-lg border-b border-white/20 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center h-20">
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => router.push('/dashboard')}
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
+                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
               >
                 <ArrowLeft size={20} />
                 <span>Geri</span>
               </button>
-              <h1 className="text-xl font-semibold text-gray-900">
-                İstatistikler
-              </h1>
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl flex items-center justify-center">
+                  <BarChart3 className="w-6 h-6 text-white" />
+                </div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                  İstatistikler
+                </h1>
+              </div>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm">
+              <span className="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg">
                 {user?.username} (Admin)
               </span>
               <button
@@ -269,7 +278,7 @@ export default function AdminStatsPage() {
                   logout()
                   router.push('/login')
                 }}
-                className="flex items-center space-x-2 bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-md transition-colors"
+                className="flex items-center space-x-2 bg-gradient-to-r from-red-100 to-red-200 hover:from-red-200 hover:to-red-300 text-red-700 px-4 py-2 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
               >
                 <LogOut size={16} />
                 <span>Çıkış</span>
@@ -280,9 +289,9 @@ export default function AdminStatsPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Genel İstatistikler */}
+        {/* Genel İstatistik Kartları */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow">
+          <div className="bg-white/80 backdrop-blur-lg p-6 rounded-2xl shadow-2xl border border-white/20 hover:shadow-3xl transition-all duration-300">
             <div className="flex items-center">
               <BarChart3 className="h-8 w-8 text-blue-500" />
               <div className="ml-4">
@@ -292,32 +301,32 @@ export default function AdminStatsPage() {
             <div className="mt-4 space-y-2">
               <div className="flex justify-between">
                 <span>Toplam Yazan:</span>
-                <span className="font-bold">{stats.totalCount}</span>
+                <span className="font-bold text-blue-600">{stats.totalCount}</span>
               </div>
               <div className="flex justify-between">
                 <span>Bugün Yazan:</span>
-                <span className="font-bold">{stats.todayCount}</span>
+                <span className="font-bold text-green-600">{stats.todayCount}</span>
               </div>
               <div className="flex justify-between">
                 <span>Toplam Aranan:</span>
-                <span className="font-bold">{stats.totalCalled}</span>
+                <span className="font-bold text-purple-600">{stats.totalCalled}</span>
               </div>
               <div className="flex justify-between">
                 <span>Bugün Aranan:</span>
-                <span className="font-bold">{stats.todayCalled}</span>
+                <span className="font-bold text-orange-600">{stats.todayCalled}</span>
               </div>
               <div className="flex justify-between">
                 <span>Arama Oranı:</span>
-                <span className="font-bold">%{stats.callRateTotal}</span>
+                <span className="font-bold text-indigo-600">%{stats.callRateTotal}</span>
               </div>
               <div className="flex justify-between">
                 <span>Bugün Arama Oranı:</span>
-                <span className="font-bold">%{stats.callRateToday}</span>
+                <span className="font-bold text-pink-600">%{stats.callRateToday}</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow">
+          <div className="bg-white/80 backdrop-blur-lg p-6 rounded-2xl shadow-2xl border border-white/20 hover:shadow-3xl transition-all duration-300">
             <div className="flex items-center">
               <PieChart className="h-8 w-8 text-green-500" />
               <div className="ml-4">
@@ -327,24 +336,24 @@ export default function AdminStatsPage() {
             <div className="mt-4 space-y-2">
               <div className="flex justify-between">
                 <span>Toplam Mesaj:</span>
-                <span className="font-bold">{responseStats.total?.totalMessages}</span>
+                <span className="font-bold text-blue-600">{responseStats.total?.totalMessages}</span>
               </div>
               <div className="flex justify-between">
                 <span>Fiyat Soran:</span>
-                <span className="font-bold">{responseStats.total?.priceAskers}</span>
+                <span className="font-bold text-green-600">{responseStats.total?.priceAskers}</span>
               </div>
               <div className="flex justify-between">
                 <span>Bilgi Soran:</span>
-                <span className="font-bold">{responseStats.total?.infoAskers}</span>
+                <span className="font-bold text-orange-600">{responseStats.total?.infoAskers}</span>
               </div>
               <div className="flex justify-between">
                 <span>Fiyat Sorma Oranı:</span>
-                <span className="font-bold">%{responseStats.total?.priceRate}</span>
+                <span className="font-bold text-purple-600">%{responseStats.total?.priceRate}</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow">
+          <div className="bg-white/80 backdrop-blur-lg p-6 rounded-2xl shadow-2xl border border-white/20 hover:shadow-3xl transition-all duration-300">
             <div className="flex items-center">
               <TrendingUp className="h-8 w-8 text-purple-500" />
               <div className="ml-4">
@@ -354,26 +363,26 @@ export default function AdminStatsPage() {
             <div className="mt-4 space-y-2">
               <div className="flex justify-between">
                 <span>Bugün Mesaj:</span>
-                <span className="font-bold">{responseStats.today?.totalMessages}</span>
+                <span className="font-bold text-blue-600">{responseStats.today?.totalMessages}</span>
               </div>
               <div className="flex justify-between">
                 <span>Fiyat Soran:</span>
-                <span className="font-bold">{responseStats.today?.priceAskers}</span>
+                <span className="font-bold text-green-600">{responseStats.today?.priceAskers}</span>
               </div>
               <div className="flex justify-between">
                 <span>Bilgi Soran:</span>
-                <span className="font-bold">{responseStats.today?.infoAskers}</span>
+                <span className="font-bold text-orange-600">{responseStats.today?.infoAskers}</span>
               </div>
               <div className="flex justify-between">
                 <span>Fiyat Sorma Oranı:</span>
-                <span className="font-bold">%{responseStats.today?.priceRate}</span>
+                <span className="font-bold text-purple-600">%{responseStats.today?.priceRate}</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Kullanıcı Performans Grafiği */}
-        <div className="bg-white p-6 rounded-lg shadow mb-8">
+        <div className="bg-white/80 backdrop-blur-lg p-6 rounded-2xl shadow-2xl border border-white/20 mb-8">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Kullanıcı Performansı (Bugün)</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={userStats}>
@@ -387,7 +396,7 @@ export default function AdminStatsPage() {
         </div>
 
         {/* Otel Bazlı İstatistikler */}
-        <div className="bg-white p-6 rounded-lg shadow mb-8">
+        <div className="bg-white/80 backdrop-blur-lg p-6 rounded-2xl shadow-2xl border border-white/20 mb-8">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Otel Bazlı İstatistikler</h3>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -448,27 +457,27 @@ export default function AdminStatsPage() {
         </div>
 
         {/* Kullanıcı Detay İstatistikleri */}
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="bg-white/80 backdrop-blur-lg p-6 rounded-2xl shadow-2xl border border-white/20">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Kullanıcı Bazlı Detay İstatistikler</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {userStats.map((userStat) => (
-              <div key={userStat.name} className="border border-gray-200 rounded-lg p-4">
+              <div key={userStat.name} className="border border-gray-200 rounded-lg p-4 bg-gradient-to-r from-gray-50 to-gray-100">
                 <h4 className="font-semibold text-gray-900 mb-2">{userStat.name}</h4>
                 <div className="space-y-1">
                   <div className="flex justify-between">
                     <span>Toplam Arama:</span>
-                    <span className="font-bold">{userStat.totalCalls}</span>
+                    <span className="font-bold text-blue-600">{userStat.totalCalls}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Bugün Arama:</span>
-                    <span className="font-bold">{userStat.todayCalls}</span>
+                    <span className="font-bold text-green-600">{userStat.todayCalls}</span>
                   </div>
                   <div className="mt-2">
-                    <span className="text-sm text-gray-600">Otel Bazlı:</span>
+                    <span className="text-sm text-gray-600">Bugün Otel Bazlı:</span>
                     {Object.entries(userStat.hotels).map(([hotel, count]) => (
                       <div key={hotel} className="flex justify-between text-sm">
                         <span>{hotel}:</span>
-                        <span>{count}</span>
+                        <span className="font-medium">{count}</span>
                       </div>
                     ))}
                   </div>
