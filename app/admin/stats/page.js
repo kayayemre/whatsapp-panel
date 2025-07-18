@@ -25,22 +25,23 @@ export default function AdminStatsPage() {
     loadAllStats()
   }, [router])
 
-  const loadAllStats = async () => {
-    try {
-      setLoading(true)
-      
-      // Tek sorguda tüm veriyi çek
-      const { data: allData, error } = await supabase
-        .from('musteriler')
-        .select('*')
-        .order('created_at', { ascending: false })
+ const loadAllStats = async () => {
+  try {
+    setLoading(true)
+    
+    // Tek sorguda tüm veriyi çek - belirli sütunları al
+    const { data: allData, error } = await supabase
+      .from('musteriler')
+      .select('id, durum, created_at, updated_by, updated_at, fiyat, otel_adi, mesaj')
+      .order('created_at', { ascending: false })
 
-      if (error) {
-        console.error('Veri çekme hatası:', error)
-        return
-      }
+    if (error) {
+      console.error('Veri çekme hatası:', error)
+      return
+    }
 
-      console.log('Admin stats - çekilen veri sayısı:', allData?.length)
+    console.log('Admin stats - çekilen veri sayısı:', allData?.length)
+    // ... rest of the function stays the same
 
       const today = new Date().toISOString().split('T')[0]
       
