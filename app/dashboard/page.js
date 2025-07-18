@@ -216,46 +216,50 @@ const loadStats = async () => {
       return
     }
 
-    console.log('Count ile toplam kayıt:', totalCount)
-
-    // Şimdi tüm veriyi çek (pagination ile)
+    // Şimdi tüm veriyi çek
     const { data: totalData, error } = await supabase
       .from('musteriler')
       .select('durum, created_at, updated_by, updated_at')
-      .range(0, 9999) // 0'dan 9999'a kadar (10.000 kayıt)
+      .range(0, 9999)
 
     if (error) {
       console.error('Stats veri çekme hatası:', error)
       return
     }
 
-    console.log('Range ile çekilen veri sayısı:', totalData?.length)
-
     const today = new Date().toISOString().split('T')[0]
-    const todayData = totalData?.filter(item => 
+    
+    // Bugün oluşturulan kayıtlar
+    const todayCreatedData = totalData?.filter(item => 
       item.created_at?.startsWith(today)
     ) || []
 
-    const totalCalled = totalData?.filter(item => item.durum === 'ARANDI').length || 0
-    
-    const todayCalled = totalData?.filter(item => 
+    // Bugün arama yapılan kayıtlar (updated_at bugün olanlar)
+    const todayCalledData = totalData?.filter(item => 
       item.durum === 'ARANDI' && item.updated_at?.startsWith(today)
-    ).length || 0
+    ) || []
 
+    const totalCalled = totalData?.filter(item => item.durum === 'ARANDI').length || 0
+
+    // Kullanıcı bazlı istatistikler
     const userStats = {}
-    totalData?.forEach(item => {
-      if (item.updated_by && item.durum === 'ARANDI' && item.updated_at?.startsWith(today)) {
+    todayCalledData.forEach(item => {
+      if (item.updated_by) {
         userStats[item.updated_by] = (userStats[item.updated_by] || 0) + 1
       }
     })
 
+    console.log('Bugün oluşturulan:', todayCreatedData.length)
+    console.log('Bugün aranan:', todayCalledData.length)
+    console.log('Kullanıcı stats:', userStats)
+
     setStats({
-      totalCount: totalCount || 0, // Count'tan gelen değeri kullan
-      todayCount: todayData.length,
+      totalCount: totalCount || 0,
+      todayCount: todayCreatedData.length,
       totalCalled,
-      todayCalled,
+      todayCalled: todayCalledData.length,
       callRateTotal: totalCount ? ((totalCalled / totalCount) * 100).toFixed(1) : 0,
-      callRateToday: todayData.length ? ((todayCalled / todayData.length) * 100).toFixed(1) : 0,
+      callRateToday: todayCreatedData.length ? ((todayCalledData.length / todayCreatedData.length) * 100).toFixed(1) : 0,
       userStats
     })
   } catch (error) {

@@ -42,81 +42,86 @@ export default function AdminStatsPage() {
   }
 
   const loadGeneralStats = async () => {
-    try {
-      const { data: allData } = await supabase
-        .from('musteriler')
-        .select('durum, created_at, fiyat, updated_at')
+  try {
+    const { count: totalCount } = await supabase
+      .from('musteriler')
+      .select('*', { count: 'exact', head: true })
 
-      const today = new Date().toISOString().split('T')[0]
-      const todayData = allData?.filter(item => 
-        item.created_at?.startsWith(today)
-      ) || []
+    const { data: allData } = await supabase
+      .from('musteriler')
+      .select('durum, created_at, fiyat, updated_at')
+      .range(0, 9999)
 
-      const totalCalled = allData?.filter(item => item.durum === 'ARANDI').length || 0
-      const todayCalled = allData?.filter(item => 
-        item.durum === 'ARANDI' && item.updated_at?.startsWith(today)
-      ).length || 0
+    const today = new Date().toISOString().split('T')[0]
+    const todayData = allData?.filter(item => 
+      item.created_at?.startsWith(today)
+    ) || []
 
-      setStats({
-        totalCount: allData?.length || 0,
-        todayCount: todayData.length,
-        totalCalled,
-        todayCalled,
-        callRateTotal: allData?.length ? ((totalCalled / allData.length) * 100).toFixed(1) : 0,
-        callRateToday: todayData.length ? ((todayCalled / todayData.length) * 100).toFixed(1) : 0
-      })
-    } catch (error) {
-      console.error('Genel istatistikler hatası:', error)
-    }
+    const totalCalled = allData?.filter(item => item.durum === 'ARANDI').length || 0
+    const todayCalled = allData?.filter(item => 
+      item.durum === 'ARANDI' && item.updated_at?.startsWith(today)
+    ).length || 0
+
+    setStats({
+      totalCount: totalCount || 0,
+      todayCount: todayData.length,
+      totalCalled,
+      todayCalled,
+      callRateTotal: totalCount ? ((totalCalled / totalCount) * 100).toFixed(1) : 0,
+      callRateToday: todayData.length ? ((todayCalled / todayData.length) * 100).toFixed(1) : 0
+    })
+  } catch (error) {
+    console.error('Genel istatistikler hatası:', error)
   }
+}
 
-  const loadHotelStats = async () => {
-    try {
-      const { data: allData } = await supabase
-        .from('musteriler')
-        .select('otel_adi, durum, created_at, updated_at')
+const loadHotelStats = async () => {
+  try {
+    const { data: allData } = await supabase
+      .from('musteriler')
+      .select('otel_adi, durum, created_at, updated_at')
+      .range(0, 9999)
 
-      const today = new Date().toISOString().split('T')[0]
-      const hotelGroups = {}
+    // Otel istatistikleri kodu aynı kalacak...
+    const today = new Date().toISOString().split('T')[0]
+    const hotelGroups = {}
 
-      // Otellere göre grupla
-      allData?.forEach(item => {
-        if (!hotelGroups[item.otel_adi]) {
-          hotelGroups[item.otel_adi] = {
-            name: item.otel_adi,
-            totalCount: 0,
-            todayCount: 0,
-            totalCalled: 0,
-            todayCalled: 0
-          }
+    allData?.forEach(item => {
+      if (!hotelGroups[item.otel_adi]) {
+        hotelGroups[item.otel_adi] = {
+          name: item.otel_adi,
+          totalCount: 0,
+          todayCount: 0,
+          totalCalled: 0,
+          todayCalled: 0
         }
+      }
 
-        hotelGroups[item.otel_adi].totalCount++
-        
-        if (item.created_at?.startsWith(today)) {
-          hotelGroups[item.otel_adi].todayCount++
+      hotelGroups[item.otel_adi].totalCount++
+      
+      if (item.created_at?.startsWith(today)) {
+        hotelGroups[item.otel_adi].todayCount++
+      }
+
+      if (item.durum === 'ARANDI') {
+        hotelGroups[item.otel_adi].totalCalled++
+        if (item.updated_at?.startsWith(today)) {
+          hotelGroups[item.otel_adi].todayCalled++
         }
+      }
+    })
 
-        if (item.durum === 'ARANDI') {
-          hotelGroups[item.otel_adi].totalCalled++
-          if (item.updated_at?.startsWith(today)) {
-            hotelGroups[item.otel_adi].todayCalled++
-          }
-        }
-      })
+    const hotelStatsArray = Object.values(hotelGroups).map(hotel => ({
+      ...hotel,
+      callRateTotal: hotel.totalCount ? ((hotel.totalCalled / hotel.totalCount) * 100).toFixed(1) : 0,
+      callRateToday: hotel.todayCount ? ((hotel.todayCalled / hotel.todayCount) * 100).toFixed(1) : 0
+    }))
 
-      // Oranları hesapla
-      const hotelStatsArray = Object.values(hotelGroups).map(hotel => ({
-        ...hotel,
-        callRateTotal: hotel.totalCount ? ((hotel.totalCalled / hotel.totalCount) * 100).toFixed(1) : 0,
-        callRateToday: hotel.todayCount ? ((hotel.todayCalled / hotel.todayCount) * 100).toFixed(1) : 0
-      }))
-
-      setHotelStats(hotelStatsArray)
-    } catch (error) {
-      console.error('Otel istatistikleri hatası:', error)
-    }
+    setHotelStats(hotelStatsArray)
+  } catch (error) {
+    console.error('Otel istatistikleri hatası:', error)
   }
+}
 
   const loadUserStats = async () => {
     try {
