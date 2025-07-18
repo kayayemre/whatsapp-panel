@@ -205,44 +205,59 @@ export default function DashboardPage() {
   }
 
   const loadStats = async () => {
-    try {
-      const { data: totalData } = await supabase
-        .from('musteriler')
-        .select('durum, created_at, updated_by, updated_at')
+  try {
+    // Tüm veriyi çek, limit yok
+    const { data: totalData, error } = await supabase
+      .from('musteriler')
+      .select('durum, created_at, updated_by, updated_at')
 
-      const today = new Date().toISOString().split('T')[0]
-      const todayData = totalData?.filter(item => 
-        item.created_at?.startsWith(today)
-      ) || []
-
-      const totalCalled = totalData?.filter(item => item.durum === 'ARANDI').length || 0
-      
-      // Bugün aranan: updated_at'i bugün olan ve durumu ARANDI olan kayıtlar
-      const todayCalled = totalData?.filter(item => 
-        item.durum === 'ARANDI' && item.updated_at?.startsWith(today)
-      ).length || 0
-
-      // Kullanıcı bazlı istatistikler - bugün arama yapanlar
-      const userStats = {}
-      totalData?.forEach(item => {
-        if (item.updated_by && item.durum === 'ARANDI' && item.updated_at?.startsWith(today)) {
-          userStats[item.updated_by] = (userStats[item.updated_by] || 0) + 1
-        }
-      })
-
-      setStats({
-        totalCount: totalData?.length || 0,
-        todayCount: todayData.length,
-        totalCalled,
-        todayCalled,
-        callRateTotal: totalData?.length ? ((totalCalled / totalData.length) * 100).toFixed(1) : 0,
-        callRateToday: todayData.length ? ((todayCalled / todayData.length) * 100).toFixed(1) : 0,
-        userStats
-      })
-    } catch (error) {
-      console.error('İstatistikler yüklenirken hata:', error)
+    if (error) {
+      console.error('Stats veri çekme hatası:', error)
+      return
     }
+
+    console.log('Stats için çekilen veri sayısı:', totalData?.length) // Debug için
+
+    const today = new Date().toISOString().split('T')[0]
+    const todayData = totalData?.filter(item => 
+      item.created_at?.startsWith(today)
+    ) || []
+
+    const totalCalled = totalData?.filter(item => item.durum === 'ARANDI').length || 0
+    
+    // Bugün aranan: updated_at'i bugün olan ve durumu ARANDI olan kayıtlar
+    const todayCalled = totalData?.filter(item => 
+      item.durum === 'ARANDI' && item.updated_at?.startsWith(today)
+    ).length || 0
+
+    // Kullanıcı bazlı istatistikler - bugün arama yapanlar
+    const userStats = {}
+    totalData?.forEach(item => {
+      if (item.updated_by && item.durum === 'ARANDI' && item.updated_at?.startsWith(today)) {
+        userStats[item.updated_by] = (userStats[item.updated_by] || 0) + 1
+      }
+    })
+
+    console.log('Hesaplanan stats:', {
+      totalCount: totalData?.length,
+      todayCount: todayData.length,
+      totalCalled,
+      todayCalled
+    }) // Debug için
+
+    setStats({
+      totalCount: totalData?.length || 0,
+      todayCount: todayData.length,
+      totalCalled,
+      todayCalled,
+      callRateTotal: totalData?.length ? ((totalCalled / totalData.length) * 100).toFixed(1) : 0,
+      callRateToday: todayData.length ? ((todayCalled / todayData.length) * 100).toFixed(1) : 0,
+      userStats
+    })
+  } catch (error) {
+    console.error('İstatistikler yüklenirken hata:', error)
   }
+}
 
   const updateStatus = async (id, newStatus) => {
     try {
